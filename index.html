@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rephraser</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+        margin: 0;
+        padding: 16px;
+        background: #f5f5f5;
+        color: #222;
+      }
+      h2 {
+        margin: 0 0 12px;
+        font-size: 16px;
+        color: #555;
+      }
+      .box {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 10px 12px;
+        min-height: 60px;
+        white-space: pre-wrap;
+        font-size: 14px;
+        line-height: 1.4;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        margin: 10px 0 18px;
+      }
+      button {
+        padding: 8px 18px;
+        font-size: 14px;
+        border-radius: 4px;
+        border: 1px solid #888;
+        background: #fff;
+        cursor: pointer;
+      }
+      button.primary {
+        background: #2563eb;
+        color: #fff;
+        border-color: #2563eb;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .placeholder {
+        color: #999;
+      }
+      #error {
+        color: #c00;
+        margin-top: 8px;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Selected text</h2>
+    <div id="captured-text" class="box placeholder">
+      Press Ctrl+Alt+J after selecting text in any app.
+    </div>
+    <div class="row">
+      <button id="rephrase-btn" class="primary" disabled>Rephrase</button>
+    </div>
+
+    <h2>Rephrased</h2>
+    <div id="rephrased-text" class="box placeholder">—</div>
+    <div class="row">
+      <button id="copy-btn" disabled>Copy</button>
+      <button id="replace-btn" disabled>Replace</button>
+    </div>
+
+    <div id="error"></div>
+
+    <script>
+      const capturedEl = document.getElementById("captured-text");
+      const rephrasedEl = document.getElementById("rephrased-text");
+      const rephraseBtn = document.getElementById("rephrase-btn");
+      const copyBtn = document.getElementById("copy-btn");
+      const replaceBtn = document.getElementById("replace-btn");
+      const errorEl = document.getElementById("error");
+
+      let capturedText = "";
+      let rephrasedText = "";
+
+      function setCaptured(text) {
+        capturedText = text || "";
+        if (capturedText) {
+          capturedEl.textContent = capturedText;
+          capturedEl.classList.remove("placeholder");
+          rephraseBtn.disabled = false;
+        } else {
+          capturedEl.textContent = "(no text selected — select text and press Ctrl+Alt+J)";
+          capturedEl.classList.add("placeholder");
+          rephraseBtn.disabled = true;
+        }
+        rephrasedText = "";
+        rephrasedEl.textContent = "—";
+        rephrasedEl.classList.add("placeholder");
+        copyBtn.disabled = true;
+        copyBtn.textContent = "Copy";
+        replaceBtn.disabled = true;
+        errorEl.textContent = "";
+      }
+
+      window.electronAPI.onCapturedText((_event, text) => setCaptured(text));
+
+      rephraseBtn.addEventListener("click", async () => {
+        if (!capturedText) return;
+        errorEl.textContent = "";
+        rephraseBtn.disabled = true;
+        rephrasedEl.textContent = "Rephrasing…";
+        rephrasedEl.classList.add("placeholder");
+        try {
+          const result = await window.electronAPI.rephrase(capturedText);
+          rephrasedText = result || "";
+          rephrasedEl.textContent = rephrasedText || "(empty response)";
+          rephrasedEl.classList.toggle("placeholder", !rephrasedText);
+          copyBtn.disabled = !rephrasedText;
+          replaceBtn.disabled = !rephrasedText;
+        } catch (e) {
+          rephrasedEl.textContent = "—";
+          rephrasedEl.classList.add("placeholder");
+          errorEl.textContent = e.message || String(e);
+        } finally {
+          rephraseBtn.disabled = !capturedText;
+        }
+      });
+
+      copyBtn.addEventListener("click", async () => {
+        if (!rephrasedText) return;
+        errorEl.textContent = "";
+        try {
+          await window.electronAPI.copy(rephrasedText);
+          copyBtn.textContent = "Copied!";
+          setTimeout(() => {
+            copyBtn.textContent = "Copy";
+          }, 1200);
+        } catch (e) {
+          errorEl.textContent = e.message || String(e);
+        }
+      });
+
+      replaceBtn.addEventListener("click", async () => {
+        if (!rephrasedText) return;
+        errorEl.textContent = "";
+        replaceBtn.disabled = true;
+        try {
+          await window.electronAPI.replace(rephrasedText);
+        } catch (e) {
+          errorEl.textContent = e.message || String(e);
+          replaceBtn.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
