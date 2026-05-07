@@ -1,4 +1,18 @@
 node_modules/
+dist/
+
+# TypeScript
+*.tsbuildinfo
+
+# Vite
+.vite/
+.cache/
+
+# Coverage
+coverage/
+
+# ESLint
+.eslintcache
 
 # Secrets
 .env
@@ -6,7 +20,6 @@ node_modules/
 .env.*.local
 
 # Build output
-dist/
 out/
 build/
 
@@ -24,3 +37,6 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+*.swo
+
+.claude
