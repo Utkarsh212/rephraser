@@ -6,4 +6,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   rephrase: (text) => ipcRenderer.invoke("rephrase", text),
   copy: (text) => ipcRenderer.invoke("copy", text),
   replace: (text) => ipcRenderer.invoke("replace", text),
+  getSettings: () => ipcRenderer.invoke("getSettings"),
+  saveSettings: (settings) => ipcRenderer.invoke("saveSettings", settings),
 });

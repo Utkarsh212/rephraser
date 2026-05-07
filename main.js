@@ -1,4 +1,10 @@
-const { app, BrowserWindow, globalShortcut, ipcMain, clipboard } = require("electron");
+const {
+  app,
+  BrowserWindow,
+  globalShortcut,
+  ipcMain,
+  clipboard,
+} = require("electron");
 const path = require("path");
 const fs = require("fs");
 const os = require("os");
@@ -33,8 +39,49 @@ function loadDotEnv() {
 }
 loadDotEnv();
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-const GEMINI_MODEL = "gemini-2.5-flash";
+const DEFAULT_MODEL = "gemini-2.5-flash";
+let settings = { apiKey: "", model: DEFAULT_MODEL };
+
+function settingsFilePath() {
+  return path.join(app.getPath("userData"), "settings.json");
+}
+
+function loadSettingsFromDisk() {
+  try {
+    const raw = fs.readFileSync(settingsFilePath(), "utf8");
+    const data = JSON.parse(raw);
+    return {
+      apiKey: typeof data.apiKey === "string" ? data.apiKey : "",
+      model:
+        typeof data.model === "string" && data.model
+          ? data.model
+          : DEFAULT_MODEL,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function persistSettings() {
+  const p = settingsFilePath();
+  fs.mkdirSync(path.dirname(p), { recursive: true });
+  fs.writeFileSync(p, JSON.stringify(settings, null, 2), "utf8");
+}
+
+function initSettings() {
+  const loaded = loadSettingsFromDisk();
+  if (loaded) {
+    settings = loaded;
+    return;
+  }
+  // First run — seed from .env if it has a key, then persist so future
+  // launches use the on-disk file as the single source of truth.
+  settings = {
+    apiKey: process.env.GEMINI_API_KEY || "",
+    model: DEFAULT_MODEL,
+  };
+  if (settings.apiKey) persistSettings();
+}
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
@@ -230,12 +277,10 @@ function pasteIntoWindow(hwnd) {
 }
 
 async function rephraseWithGemini(text) {
-  if (!GEMINI_API_KEY) {
-    throw new Error(
-      "GEMINI_API_KEY environment variable is not set. Set it before launching the app.",
-    );
+  if (!settings.apiKey) {
+    throw new Error("API key not configured. Open Settings to add one.");
   }
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${settings.model}:generateContent?key=${settings.apiKey}`;
   const body = {
     contents: [
       {
@@ -262,6 +307,23 @@ async function rephraseWithGemini(text) {
   return out.trim();
 }
 
+ipcMain.handle("getSettings", () => ({
+  apiKey: settings.apiKey,
+  model: settings.model,
+  hasApiKey: !!settings.apiKey,
+}));
+
+ipcMain.handle("saveSettings", (_event, incoming) => {
+  if (typeof incoming?.apiKey === "string") {
+    settings.apiKey = incoming.apiKey.trim();
+  }
+  if (typeof incoming?.model === "string" && incoming.model) {
+    settings.model = incoming.model;
+  }
+  persistSettings();
+  return { apiKey: settings.apiKey, model: settings.model };
+});
+
 ipcMain.handle("rephrase", async (_event, text) => {
   return await rephraseWithGemini(text);
 });
@@ -272,7 +334,9 @@ ipcMain.handle("copy", async (_event, text) => {
 
 ipcMain.handle("replace", async (_event, text) => {
   if (!lastForegroundHwnd || lastForegroundHwnd === "0") {
-    throw new Error("No source window remembered — trigger the shortcut again.");
+    throw new Error(
+      "No source window remembered — trigger the shortcut again.",
+    );
   }
   clipboard.writeText(text);
   if (mainWindow) mainWindow.hide();
@@ -282,6 +346,7 @@ ipcMain.handle("replace", async (_event, text) => {
 });
 
 app.whenReady().then(() => {
+  initSettings();
   createMainWindow();
 
   const accelerator = "CommandOrControl+Alt+J";
@@ -307,9 +372,9 @@ app.whenReady().then(() => {
   } else {
     console.log(`Registered global shortcut: ${accelerator}`);
   }
-  if (!GEMINI_API_KEY) {
+  if (!settings.apiKey) {
     console.warn(
-      "WARNING: GEMINI_API_KEY is not set. Rephrase requests will fail until you set it.",
+      "API key not configured — user will be prompted via the Settings view.",
     );
   }
 });
