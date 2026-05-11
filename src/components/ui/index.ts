@@ -5,3 +5,4 @@ export { EmptyState } from "./EmptyState";
 export { LoadingState } from "./LoadingState";
 export { ErrorBanner } from "./ErrorBanner";
 export { Textarea } from "./Textarea";
+export { ShortcutInput } from "./ShortcutInput";

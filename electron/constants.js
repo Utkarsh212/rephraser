@@ -1,7 +1,7 @@
 const path = require("path");
 const os = require("os");
 
-const SHORTCUT_ACCELERATOR = "CommandOrControl+Alt+J";
+const DEFAULT_SHORTCUT = "CommandOrControl+Alt+J";
 const DEFAULT_MODEL = "gemini-2.5-flash";
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 const DEV_SERVER_URL = "http://localhost:5173";
@@ -20,7 +20,7 @@ const CAPTURE_SCRIPT_TMP = path.join(os.tmpdir(), "electron-app-capture.ps1");
 const REPLACE_SCRIPT_TMP = path.join(os.tmpdir(), "electron-app-replace.ps1");
 
 module.exports = {
-  SHORTCUT_ACCELERATOR,
+  DEFAULT_SHORTCUT,
   DEFAULT_MODEL,
   GEMINI_API_BASE,
   DEV_SERVER_URL,

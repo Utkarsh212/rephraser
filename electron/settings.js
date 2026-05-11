@@ -1,9 +1,13 @@
 const fs = require("fs");
 const path = require("path");
 const { app } = require("electron");
-const { DEFAULT_MODEL } = require("./constants");
+const { DEFAULT_MODEL, DEFAULT_SHORTCUT } = require("./constants");
 
-let current = { apiKey: "", model: DEFAULT_MODEL };
+let current = {
+  apiKey: "",
+  model: DEFAULT_MODEL,
+  shortcut: DEFAULT_SHORTCUT,
+};
 
 function settingsFilePath() {
   return path.join(app.getPath("userData"), "settings.json");
@@ -19,6 +23,10 @@ function loadFromDisk() {
         typeof data.model === "string" && data.model
           ? data.model
           : DEFAULT_MODEL,
+      shortcut:
+        typeof data.shortcut === "string" && data.shortcut
+          ? data.shortcut
+          : DEFAULT_SHORTCUT,
     };
   } catch {
     return null;
@@ -37,11 +45,10 @@ function init() {
     current = loaded;
     return;
   }
-  // First run — seed from .env if it has a key, then persist so future
-  // launches use the on-disk file as the single source of truth.
   current = {
     apiKey: process.env.GEMINI_API_KEY || "",
     model: DEFAULT_MODEL,
+    shortcut: DEFAULT_SHORTCUT,
   };
   if (current.apiKey) persist();
 }
@@ -56,6 +63,9 @@ function update(incoming) {
   }
   if (typeof incoming?.model === "string" && incoming.model) {
     current.model = incoming.model;
+  }
+  if (typeof incoming?.shortcut === "string" && incoming.shortcut) {
+    current.shortcut = incoming.shortcut;
   }
   persist();
   return get();

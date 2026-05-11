@@ -9,7 +9,7 @@ const {
 const path = require("path");
 
 const {
-  SHORTCUT_ACCELERATOR,
+  DEFAULT_SHORTCUT,
   DEV_SERVER_URL,
   DEV_FLAG,
   PASTE_FOCUS_DELAY_MS,
@@ -21,8 +21,12 @@ const selection = require("./electron/selection");
 
 loadDotEnv();
 
+const AUTO_RESUME_MS = 30_000;
+
 let mainWindow;
 let lastForegroundHwnd = null;
+let currentAccelerator = null;
+let resumeTimer = null;
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
@@ -43,7 +47,6 @@ function createMainWindow() {
   }
   mainWindow.hide();
 
-  // Closing the window destroys it; hide instead so the shortcut can re-show it.
   mainWindow.on("close", (event) => {
     if (!app.isQuitting) {
       event.preventDefault();
@@ -52,13 +55,94 @@ function createMainWindow() {
   });
 }
 
+async function onShortcutTriggered() {
+  let result = { hwnd: null, text: "" };
+  try {
+    result = await selection.getSelection();
+  } catch (e) {
+    console.error("capture failed:", e);
+  }
+  lastForegroundHwnd = result.hwnd;
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("captured-text", result.text);
+    mainWindow.show();
+    mainWindow.focus();
+  }
+}
+
+function clearResumeTimer() {
+  if (resumeTimer) {
+    clearTimeout(resumeTimer);
+    resumeTimer = null;
+  }
+}
+
+// Registers `accelerator` as the global shortcut. Returns true on success,
+// false if the OS or another app already owns it (or the string is invalid).
+// Always unregisters whatever was previously registered first and cancels
+// any pending auto-resume.
+function applyShortcut(accelerator) {
+  clearResumeTimer();
+  if (currentAccelerator) {
+    globalShortcut.unregister(currentAccelerator);
+    currentAccelerator = null;
+  }
+  let ok = false;
+  try {
+    ok = globalShortcut.register(accelerator, onShortcutTriggered);
+  } catch {
+    ok = false;
+  }
+  if (ok) currentAccelerator = accelerator;
+  return ok;
+}
+
+// Safety net: if the renderer suspends the shortcut and never resumes (crash,
+// closed window, dropped IPC), restore it after AUTO_RESUME_MS.
+function scheduleAutoResume() {
+  clearResumeTimer();
+  resumeTimer = setTimeout(() => {
+    resumeTimer = null;
+    applyShortcut(settings.get().shortcut || DEFAULT_SHORTCUT);
+  }, AUTO_RESUME_MS);
+}
+
 function registerIpcHandlers() {
   ipcMain.handle("getSettings", () => {
     const s = settings.get();
     return { ...s, hasApiKey: !!s.apiKey };
   });
 
-  ipcMain.handle("saveSettings", (_event, incoming) => settings.update(incoming));
+  ipcMain.handle("saveSettings", (_event, incoming) => {
+    const prev = settings.get();
+    const requested =
+      typeof incoming?.shortcut === "string" && incoming.shortcut
+        ? incoming.shortcut
+        : prev.shortcut;
+
+    if (requested !== prev.shortcut) {
+      if (!applyShortcut(requested)) {
+        // Rollback: re-register the previous shortcut so the app keeps working.
+        applyShortcut(prev.shortcut);
+        throw new Error(
+          `The shortcut "${requested}" is already in use by another app or the OS. Pick a different combination.`,
+        );
+      }
+    }
+    return settings.update(incoming);
+  });
+
+  ipcMain.handle("suspendShortcut", () => {
+    if (currentAccelerator) {
+      globalShortcut.unregister(currentAccelerator);
+      currentAccelerator = null;
+    }
+    scheduleAutoResume();
+  });
+
+  ipcMain.handle("resumeShortcut", () => {
+    applyShortcut(settings.get().shortcut || DEFAULT_SHORTCUT);
+  });
 
   ipcMain.handle("rephrase", async (_event, text) => gemini.rephrase(text));
 
@@ -79,32 +163,8 @@ function registerIpcHandlers() {
   });
 }
 
-function registerShortcut() {
-  const ok = globalShortcut.register(SHORTCUT_ACCELERATOR, async () => {
-    // Capture before showing the window — once focus moves to Electron,
-    // we'd be reading our own (empty) input instead of the user's selection.
-    let result = { hwnd: null, text: "" };
-    try {
-      result = await selection.getSelection();
-    } catch (e) {
-      console.error("capture failed:", e);
-    }
-    lastForegroundHwnd = result.hwnd;
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send("captured-text", result.text);
-      mainWindow.show();
-      mainWindow.focus();
-    }
-  });
-  if (!ok) {
-    console.error(`Failed to register shortcut: ${SHORTCUT_ACCELERATOR}`);
-  }
-}
-
 function ensureMacAccessibility() {
   if (process.platform !== "darwin") return;
-  // Prompts the user (once) to grant Accessibility permission. Required so
-  // System Events can read the frontmost app and send Cmd+C / Cmd+V.
   if (!systemPreferences.isTrustedAccessibilityClient(false)) {
     systemPreferences.isTrustedAccessibilityClient(true);
   }
@@ -116,7 +176,16 @@ app.whenReady().then(() => {
   ensureMacAccessibility();
   createMainWindow();
   registerIpcHandlers();
-  registerShortcut();
+
+  const desired = settings.get().shortcut || DEFAULT_SHORTCUT;
+  if (!applyShortcut(desired) && desired !== DEFAULT_SHORTCUT) {
+    // Saved shortcut isn't available — fall back to the default so the
+    // app stays usable.
+    applyShortcut(DEFAULT_SHORTCUT);
+  }
+  if (!currentAccelerator) {
+    console.error(`Failed to register any shortcut (tried: ${desired})`);
+  }
 });
 
 app.on("before-quit", () => {

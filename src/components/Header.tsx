@@ -1,13 +1,17 @@
 import { Settings as SettingsIcon, Wand2, X } from "lucide-react";
 import { useUiStore } from "../store/uiStore";
 import { useSettings } from "../lib/queries";
-import { SHORTCUT_LABEL, STRINGS } from "../lib/constants";
+import { DEFAULT_SHORTCUT, STRINGS } from "../lib/constants";
+import { acceleratorToLabel } from "../lib/keybinding";
 
 export function Header() {
   const view = useUiStore((s) => s.view);
   const setView = useUiStore((s) => s.setView);
   const { data: settings } = useSettings();
   const canCloseSettings = view === "settings" && !!settings?.hasApiKey;
+  const shortcutLabel = acceleratorToLabel(
+    settings?.shortcut || DEFAULT_SHORTCUT,
+  );
 
   return (
     <header className="flex items-center justify-between mb-6 pt-1">
@@ -22,7 +26,7 @@ export function Header() {
           <p className="text-xs text-stone-500">
             {STRINGS.header.hintPrefix}{" "}
             <kbd className="px-1 py-0.5 text-[10px] font-mono bg-stone-100 border border-stone-200 rounded text-stone-700">
-              {SHORTCUT_LABEL}
+              {shortcutLabel}
             </kbd>{" "}
             {STRINGS.header.hintSuffix}
           </p>

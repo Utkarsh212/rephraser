@@ -11,4 +11,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   replace: (text) => ipcRenderer.invoke("replace", text),
   getSettings: () => ipcRenderer.invoke("getSettings"),
   saveSettings: (settings) => ipcRenderer.invoke("saveSettings", settings),
+  suspendShortcut: () => ipcRenderer.invoke("suspendShortcut"),
+  resumeShortcut: () => ipcRenderer.invoke("resumeShortcut"),
 });

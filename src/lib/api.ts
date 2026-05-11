@@ -12,3 +12,5 @@ export const replaceSelection = (text: string): Promise<void> =>
 export const onCapturedText = (
   cb: (event: unknown, text: string) => void,
 ): (() => void) => api.onCapturedText(cb);
+export const suspendShortcut = (): Promise<void> => api.suspendShortcut();
+export const resumeShortcut = (): Promise<void> => api.resumeShortcut();

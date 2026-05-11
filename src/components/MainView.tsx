@@ -7,8 +7,18 @@ import {
   FileText,
 } from "lucide-react";
 import { useUiStore } from "../store/uiStore";
-import { useRephrase, useCopy, useReplace } from "../lib/queries";
-import { COPIED_FEEDBACK_MS, STRINGS } from "../lib/constants";
+import {
+  useRephrase,
+  useCopy,
+  useReplace,
+  useSettings,
+} from "../lib/queries";
+import {
+  COPIED_FEEDBACK_MS,
+  DEFAULT_SHORTCUT,
+  STRINGS,
+} from "../lib/constants";
+import { acceleratorToLabel } from "../lib/keybinding";
 import {
   Button,
   Card,
@@ -23,6 +33,11 @@ export default function MainView() {
   const rephrasedText = useUiStore((s) => s.rephrasedText);
   const setCapturedText = useUiStore((s) => s.setCapturedText);
   const setRephrasedText = useUiStore((s) => s.setRephrasedText);
+
+  const { data: settingsData } = useSettings();
+  const shortcutLabel = acceleratorToLabel(
+    settingsData?.shortcut || DEFAULT_SHORTCUT,
+  );
 
   const rephrase = useRephrase();
   const copy = useCopy();
@@ -63,7 +78,7 @@ export default function MainView() {
         <Textarea
           value={capturedText}
           onChange={(e) => setCapturedText(e.target.value)}
-          placeholder={STRINGS.capture.placeholder}
+          placeholder={STRINGS.capture.placeholder(shortcutLabel)}
           rows={4}
         />
         <div className="flex justify-end mt-3">

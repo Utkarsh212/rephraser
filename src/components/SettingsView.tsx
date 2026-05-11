@@ -1,14 +1,15 @@
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
-import { KeyRound, Cpu, Save, X } from "lucide-react";
+import { KeyRound, Cpu, Save, X, Command } from "lucide-react";
 import { useSettings, useSaveSettings } from "../lib/queries";
 import { useUiStore } from "../store/uiStore";
 import type { SaveSettingsInput } from "../types";
-import { Button, Card, ErrorBanner } from "./ui";
+import { Button, Card, ErrorBanner, ShortcutInput } from "./ui";
 import { inputClasses, labelClasses, selectClasses } from "../lib/styles";
 import {
   API_KEY_DOCS_URL,
   DEFAULT_MODEL,
+  DEFAULT_SHORTCUT,
   MODELS,
   STRINGS,
 } from "../lib/constants";
@@ -20,6 +21,7 @@ type Props = {
 const schema = Yup.object({
   apiKey: Yup.string().trim().required(STRINGS.errors.apiKeyRequired),
   model: Yup.string().required(STRINGS.errors.modelRequired),
+  shortcut: Yup.string().required(STRINGS.errors.shortcutRequired),
 });
 
 export default function SettingsView({ isFirstRun = false }: Props) {
@@ -30,6 +32,7 @@ export default function SettingsView({ isFirstRun = false }: Props) {
   const initial: SaveSettingsInput = {
     apiKey: settings?.apiKey || "",
     model: settings?.model || DEFAULT_MODEL,
+    shortcut: settings?.shortcut || DEFAULT_SHORTCUT,
   };
 
   return (
@@ -62,7 +65,7 @@ export default function SettingsView({ isFirstRun = false }: Props) {
           }
         }}
       >
-        {({ isSubmitting, status }) => (
+        {({ isSubmitting, status, values, setFieldValue }) => (
           <Form className="space-y-4">
             <div>
               <label htmlFor="apiKey" className={labelClasses}>
@@ -108,6 +111,25 @@ export default function SettingsView({ isFirstRun = false }: Props) {
                   </option>
                 ))}
               </Field>
+            </div>
+
+            <div>
+              <label className={labelClasses}>
+                <Command className="w-4 h-4" />
+                {STRINGS.settings.shortcutLabel}
+              </label>
+              <ShortcutInput
+                value={values.shortcut}
+                onChange={(accel) => setFieldValue("shortcut", accel)}
+              />
+              <ErrorMessage
+                name="shortcut"
+                component="div"
+                className="text-red-600 text-xs mt-1"
+              />
+              <p className="text-xs text-stone-500 mt-1.5">
+                {STRINGS.settings.shortcutHint}
+              </p>
             </div>
 
             <div className="flex gap-2 pt-3">

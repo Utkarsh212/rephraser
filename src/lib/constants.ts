@@ -1,10 +1,7 @@
 export const APP_NAME = "Rephraser";
 
-const isMac =
-  typeof window !== "undefined" && window.electronAPI?.platform === "darwin";
-export const SHORTCUT_LABEL = isMac ? "⌘+⌥+J" : "Ctrl+Alt+J";
-
 export const DEFAULT_MODEL = "gemini-2.5-flash";
+export const DEFAULT_SHORTCUT = "CommandOrControl+Alt+J";
 
 type ModelOption = { value: string; label: string };
 
@@ -29,7 +26,8 @@ export const STRINGS = {
   },
   capture: {
     sectionLabel: "Selected text",
-    placeholder: `Press ${SHORTCUT_LABEL} after selecting text in any app — or type/paste text here.`,
+    placeholder: (shortcutLabel: string) =>
+      `Press ${shortcutLabel} after selecting text in any app — or type/paste text here.`,
   },
   rephrase: {
     button: "Rephrase",
@@ -52,7 +50,7 @@ export const STRINGS = {
   },
   settings: {
     title: "Settings",
-    subtitle: "Manage your API key and model preference.",
+    subtitle: "Manage your API key, model, and global shortcut.",
     welcomeTitle: "Welcome to Rephraser",
     welcomeSubtitle: "Add a Gemini API key to enable rephrasing.",
     save: "Save",
@@ -63,6 +61,13 @@ export const STRINGS = {
     apiKeyHelpPrefix: "Get a key at",
     apiKeyHelpSuffix: ". Stored locally on this machine.",
     modelLabel: "Model",
+    shortcutLabel: "Global shortcut",
+    shortcutHint:
+      "Press this anywhere to capture selected text. Pick a combo that isn't used by your OS or other apps.",
+    shortcutRecord: "Change",
+    shortcutCancel: "Cancel",
+    shortcutReset: "Reset to default",
+    shortcutPrompt: "Press a key combination… (Esc to cancel)",
   },
   loading: {
     settings: "Loading settings…",
@@ -71,5 +76,6 @@ export const STRINGS = {
     settingsLoad: "Failed to load settings",
     apiKeyRequired: "API key is required",
     modelRequired: "Model is required",
+    shortcutRequired: "Shortcut is required",
   },
 };
