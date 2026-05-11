@@ -50,11 +50,17 @@
       "output": "release"
     },
     "files": [
-      "main.js",
-      "preload.js",
-      "electron/**/*",
-      "dist/**/*",
-      "package.json"
+      "**/*",
+      "!src/**",
+      "!docs/**",
+      "!build/source/**",
+      "!release/**",
+      "!*.md",
+      "!*.tsbuildinfo",
+      "!tsconfig*.json",
+      "!vite.config.ts",
+      "!.env*",
+      "!.claude/**"
     ],
     "win": {
       "target": [
