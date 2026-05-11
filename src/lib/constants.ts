@@ -6,7 +6,7 @@ export const SHORTCUT_LABEL = isMac ? "⌘+⌥+J" : "Ctrl+Alt+J";
 
 export const DEFAULT_MODEL = "gemini-2.5-flash";
 
-export type ModelOption = { value: string; label: string };
+type ModelOption = { value: string; label: string };
 
 export const MODELS: readonly ModelOption[] = [
   { value: "gemini-2.5-flash", label: "gemini-2.5-flash (balanced)" },

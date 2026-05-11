@@ -11,7 +11,7 @@ export type SaveSettingsInput = {
 
 export type View = "main" | "settings";
 
-export type Platform = "win32" | "darwin" | "linux" | string;
+type Platform = string;
 
 declare global {
   interface Window {

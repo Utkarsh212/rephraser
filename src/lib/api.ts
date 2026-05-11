@@ -1,10 +1,5 @@
 import type { SaveSettingsInput, Settings } from "../types";
 
-if (!window.electronAPI) {
-  // eslint-disable-next-line no-console
-  console.error("window.electronAPI is undefined — preload script did not run.");
-}
-
 const api = window.electronAPI;
 
 export const getSettings = (): Promise<Settings> => api.getSettings();
