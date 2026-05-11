@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     return () => ipcRenderer.removeListener("captured-text", callback);
   },
   rephrase: (text) => ipcRenderer.invoke("rephrase", text),
+  listModels: (apiKey) => ipcRenderer.invoke("listModels", apiKey),
   copy: (text) => ipcRenderer.invoke("copy", text),
   replace: (text) => ipcRenderer.invoke("replace", text),
   getSettings: () => ipcRenderer.invoke("getSettings"),

@@ -1,11 +1,12 @@
+import type { ModelOption } from "../types";
+
 export const APP_NAME = "Rephraser";
 
 export const DEFAULT_MODEL = "gemini-2.5-flash";
 export const DEFAULT_SHORTCUT = "CommandOrControl+Alt+J";
 
-type ModelOption = { value: string; label: string };
-
-export const MODELS: readonly ModelOption[] = [
+// Used when no API key is configured or the live model list fails to load.
+export const FALLBACK_MODELS: readonly ModelOption[] = [
   { value: "gemini-2.5-flash", label: "gemini-2.5-flash (balanced)" },
   {
     value: "gemini-2.5-flash-lite",
@@ -61,6 +62,9 @@ export const STRINGS = {
     apiKeyHelpPrefix: "Get a key at",
     apiKeyHelpSuffix: ". Stored locally on this machine.",
     modelLabel: "Model",
+    modelsLoading: "Loading available models…",
+    modelsFallbackHint:
+      "Couldn't fetch live models — showing a default list. Check your API key.",
     shortcutLabel: "Global shortcut",
     shortcutHint:
       "Press this anywhere to capture selected text. Pick a combo that isn't used by your OS or other apps.",

@@ -22,6 +22,16 @@ export function useRephrase() {
   return useMutation({ mutationFn: api.rephrase });
 }
 
+export function useModels(apiKey: string) {
+  return useQuery({
+    queryKey: ["models", apiKey],
+    queryFn: () => api.listModels(apiKey),
+    enabled: apiKey.trim().length > 20,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+}
+
 export function useCopy() {
   return useMutation({ mutationFn: api.copyToClipboard });
 }

@@ -11,6 +11,8 @@ export type SaveSettingsInput = {
   shortcut: string;
 };
 
+export type ModelOption = { value: string; label: string };
+
 export type View = "main" | "settings";
 
 type Platform = string;
@@ -23,6 +25,7 @@ declare global {
         callback: (event: unknown, text: string) => void,
       ) => () => void;
       rephrase: (text: string) => Promise<string>;
+      listModels: (apiKey?: string) => Promise<ModelOption[]>;
       copy: (text: string) => Promise<void>;
       replace: (text: string) => Promise<void>;
       getSettings: () => Promise<Settings>;

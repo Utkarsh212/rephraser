@@ -25,4 +25,28 @@ async function rephrase(text) {
   return out.trim();
 }
 
-module.exports = { rephrase };
+async function listModels(apiKey) {
+  const key = apiKey || settings.get().apiKey;
+  if (!key) throw new Error("API key required to list models");
+  const url = `${GEMINI_API_BASE}?key=${encodeURIComponent(key)}&pageSize=1000`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Gemini ${res.status}: ${errText}`);
+  }
+  const data = await res.json();
+  return (data.models || [])
+    .filter(
+      (m) =>
+        typeof m.name === "string" &&
+        m.name.startsWith("models/gemini-") &&
+        Array.isArray(m.supportedGenerationMethods) &&
+        m.supportedGenerationMethods.includes("generateContent"),
+    )
+    .map((m) => {
+      const id = m.name.replace(/^models\//, "");
+      return { value: id, label: m.displayName ? `${m.displayName} (${id})` : id };
+    });
+}
+
+module.exports = { rephrase, listModels };

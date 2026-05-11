@@ -1,18 +1,28 @@
+import { useEffect, useState } from "react";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { KeyRound, Cpu, Save, X, Command } from "lucide-react";
-import { useSettings, useSaveSettings } from "../lib/queries";
+import { useSettings, useSaveSettings, useModels } from "../lib/queries";
 import { useUiStore } from "../store/uiStore";
-import type { SaveSettingsInput } from "../types";
+import type { ModelOption, SaveSettingsInput } from "../types";
 import { Button, Card, ErrorBanner, ShortcutInput } from "./ui";
 import { inputClasses, labelClasses, selectClasses } from "../lib/styles";
 import {
   API_KEY_DOCS_URL,
   DEFAULT_MODEL,
   DEFAULT_SHORTCUT,
-  MODELS,
+  FALLBACK_MODELS,
   STRINGS,
 } from "../lib/constants";
+
+function useDebouncedValue<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(t);
+  }, [value, delayMs]);
+  return debounced;
+}
 
 type Props = {
   isFirstRun?: boolean;
@@ -94,24 +104,10 @@ export default function SettingsView({ isFirstRun = false }: Props) {
               </p>
             </div>
 
-            <div>
-              <label htmlFor="model" className={labelClasses}>
-                <Cpu className="w-4 h-4" />
-                {STRINGS.settings.modelLabel}
-              </label>
-              <Field
-                as="select"
-                id="model"
-                name="model"
-                className={selectClasses}
-              >
-                {MODELS.map((m) => (
-                  <option key={m.value} value={m.value}>
-                    {m.label}
-                  </option>
-                ))}
-              </Field>
-            </div>
+            <ModelSelect
+              apiKey={values.apiKey}
+              currentModel={values.model}
+            />
 
             <div>
               <label className={labelClasses}>
@@ -159,5 +155,55 @@ export default function SettingsView({ isFirstRun = false }: Props) {
         )}
       </Formik>
     </Card>
+  );
+}
+
+function ModelSelect({
+  apiKey,
+  currentModel,
+}: {
+  apiKey: string;
+  currentModel: string;
+}) {
+  const debouncedApiKey = useDebouncedValue(apiKey.trim(), 500);
+  const models = useModels(debouncedApiKey);
+
+  const fetched = models.data ?? [];
+  const useFetched = fetched.length > 0;
+  const baseOptions: readonly ModelOption[] = useFetched
+    ? fetched
+    : FALLBACK_MODELS;
+
+  const hasCurrent = baseOptions.some((o) => o.value === currentModel);
+  const options: ModelOption[] = hasCurrent
+    ? [...baseOptions]
+    : [{ value: currentModel, label: currentModel }, ...baseOptions];
+
+  const showFallbackHint = models.isError && !useFetched;
+
+  return (
+    <div>
+      <label htmlFor="model" className={labelClasses}>
+        <Cpu className="w-4 h-4" />
+        {STRINGS.settings.modelLabel}
+      </label>
+      <Field as="select" id="model" name="model" className={selectClasses}>
+        {options.map((m) => (
+          <option key={m.value} value={m.value}>
+            {m.label}
+          </option>
+        ))}
+      </Field>
+      {models.isFetching && (
+        <p className="text-xs text-stone-500 mt-1.5">
+          {STRINGS.settings.modelsLoading}
+        </p>
+      )}
+      {showFallbackHint && (
+        <p className="text-xs text-amber-600 mt-1.5">
+          {STRINGS.settings.modelsFallbackHint}
+        </p>
+      )}
+    </div>
   );
 }

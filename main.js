@@ -146,6 +146,10 @@ function registerIpcHandlers() {
 
   ipcMain.handle("rephrase", async (_event, text) => gemini.rephrase(text));
 
+  ipcMain.handle("listModels", async (_event, apiKey) =>
+    gemini.listModels(apiKey),
+  );
+
   ipcMain.handle("copy", async (_event, text) => {
     clipboard.writeText(text);
   });
